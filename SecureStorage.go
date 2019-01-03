@@ -136,7 +136,7 @@ func (s *storage) store() error {
 		ba.AddInt(s.pairs[i].aside)
 		ba.AddInt(s.pairs[i].bside)
 	}
-	ba.AddByteArray(s.key)
+	ba.AddByteSlice(s.key)
 	for key,value := range s.data {
 		kd, e := Encode([]byte(key),k)
 		if e!=nil {
@@ -188,7 +188,7 @@ func (s *storage) load() error {
 		p.bside=bside
 		s.pairs = append(s.pairs,&p)
 	}
-	s.key = ba.GetByteArray()
+	s.key = ba.GetByteSlice()
 	k,err := s.convert()
 	if err!=nil {
 		return err
