@@ -131,7 +131,7 @@ func (s *storage) store() error {
 	if e!=nil {
 		return e
 	}
-	ba := NewByteArray()
+	ba := NewByteSlice()
 	for i:=0;i<len(s.pairs);i++ {
 		ba.AddInt(s.pairs[i].aside)
 		ba.AddInt(s.pairs[i].bside)
@@ -178,7 +178,7 @@ func (s *storage) load() error {
 		return err
 	}
 
-	ba := NewByteArrayWithData(buff,0)
+	ba := NewByteSliceWithData(buff,0)
 
 	for i:=0;i<4;i++ {
 		aside:=ba.GetInt()
