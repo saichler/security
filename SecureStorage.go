@@ -1,17 +1,17 @@
 package security
 
-import ("time"
-		mathrand "math/rand"
+import (
 	"crypto/aes"
-	log "github.com/sirupsen/logrus"
-	"encoding/base64"
-	"io"
-	"crypto/rand"
 	"crypto/cipher"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
-	"io/ioutil"
-	"os"
 	. "github.com/saichler/utils/golang"
+	"io"
+	"io/ioutil"
+	mathrand "math/rand"
+	"os"
+	"time"
 )
 
 const (
@@ -146,7 +146,7 @@ func (s *storage) store() error {
 	}
 	err:=ioutil.WriteFile(s.filename, ba.Data(), 0777)
 	if err!=nil {
-		log.Error("Failed to store data to file "+s.filename+"! ", err)
+		Error("Failed to store data to file "+s.filename+"! ", err)
 		return err
 	}
 	return nil
@@ -169,12 +169,12 @@ func (s *storage) create() error {
 func (s *storage) load() error {
 	_,err := os.Stat(s.filename)
 	if err!=nil {
-		log.Info("storage does not exist, creating it!")
+		Info("storage does not exist, creating it!")
 		return s.create()
 	}
 	buff,err := ioutil.ReadFile(s.filename)
 	if err!=nil {
-		log.Error("Failed to read storage file! ", err)
+		Error("Failed to read storage file! ", err)
 		return err
 	}
 
@@ -209,7 +209,7 @@ func Encode(data []byte, key string) ([]byte, error) {
 	k := []byte(key)
 	block, err := aes.NewCipher(k)
 	if err !=nil{
-		log.Info("Failed to load encryption cipher! ", err)
+		Info("Failed to load encryption cipher! ", err)
 		return data, err
 	}
 
@@ -219,7 +219,7 @@ func Encode(data []byte, key string) ([]byte, error) {
 	iv := cipherdata[:aes.BlockSize]
 	_, err = io.ReadFull(rand.Reader, iv)
 	if err!=nil {
-		log.Error("Failed to encrypt data! ",err)
+		Error("Failed to encrypt data! ",err)
 		return data, err
 	}
 
@@ -231,13 +231,13 @@ func Encode(data []byte, key string) ([]byte, error) {
 func Decode(encData []byte, key string) ([]byte, error) {
 	if len(encData) < aes.BlockSize {
 		err := errors.New("Encrypted data does not have an IV spec!")
-		log.Error("Encrypted data does not have an IV spec!")
+		Error("Encrypted data does not have an IV spec!")
 		return encData, err
 	}
 	k := []byte(key)
 	block, err := aes.NewCipher(k)
 	if err !=nil{
-		log.Error("Failed to load encryption cipher! ", err)
+		Error("Failed to load encryption cipher! ", err)
 		return encData, err
 	}
 	iv := encData[:aes.BlockSize]
@@ -246,7 +246,7 @@ func Decode(encData []byte, key string) ([]byte, error) {
 	cfb.XORKeyStream(encData, encData)
 	data, err := base64.StdEncoding.DecodeString(string(encData))
 	if err != nil {
-		log.Error("Failed to decrypt data! ", err)
+		Error("Failed to decrypt data! ", err)
 		return encData,err
 	}
 	return data, nil
