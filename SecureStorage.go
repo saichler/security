@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	. "github.com/saichler/utils/golang"
@@ -24,7 +25,7 @@ const (
 )
 
 var l = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-var g = []rune(a+b+c+d+e+f)
+var g = []rune(a + b + c + d + e + f)
 
 type pair struct {
 	aside int
@@ -33,14 +34,14 @@ type pair struct {
 
 type storage struct {
 	filename string
-	key []byte
-	data map[string][]byte
-	pairs []*pair
+	key      []byte
+	data     map[string][]byte
+	pairs    []*pair
 }
 
 func (s *storage) exist(x int) bool {
-	for i:=0;i<len(s.pairs);i++ {
-		if s.pairs[i].aside==x || s.pairs[i].bside==x {
+	for i := 0; i < len(s.pairs); i++ {
+		if s.pairs[i].aside == x || s.pairs[i].bside == x {
 			return true
 		}
 	}
@@ -51,11 +52,11 @@ func (s *storage) addpair() {
 	mathrand.Seed(time.Now().UnixNano())
 	pr := pair{}
 	rnd := mathrand.Intn(32)
-	for ;s.exist(rnd); {
+	for ; s.exist(rnd); {
 		rnd = mathrand.Intn(32)
 	}
 	pr.aside = rnd
-	for ;s.exist(rnd) || rnd==pr.aside; {
+	for ; s.exist(rnd) || rnd == pr.aside; {
 		rnd = mathrand.Intn(32)
 	}
 	pr.bside = rnd
@@ -72,11 +73,11 @@ func GenerateAES256Key() string {
 }
 
 func (s *storage) validate(data []byte) {
-	for i:=0;i<len(s.pairs);i++ {
+	for i := 0; i < len(s.pairs); i++ {
 		aside := data[s.pairs[i].aside]
 		bside := data[s.pairs[i].bside]
-		data[s.pairs[i].aside]=bside
-		data[s.pairs[i].bside]=aside
+		data[s.pairs[i].aside] = bside
+		data[s.pairs[i].bside] = aside
 	}
 }
 
@@ -88,13 +89,13 @@ func InitSecureStore(filename string) *storage {
 	return &s
 }
 
-func (s *storage) Put(key,value string) error {
+func (s *storage) Put(key, value string) error {
 	k, err := s.convert()
-	if err!=nil {
+	if err != nil {
 		return err
 	}
-	evalue, err:= Encode([]byte(value),k)
-	if err!=nil {
+	evalue, err := Encode([]byte(value), k)
+	if err != nil {
 		return err
 	}
 	s.data[key] = evalue
@@ -102,50 +103,50 @@ func (s *storage) Put(key,value string) error {
 }
 
 func (s *storage) convert() (string, error) {
-	kb := make([]byte,0)
+	kb := make([]byte, 0)
 	kb = append(kb, s.key...)
 	s.validate(kb)
-	dd, err := Decode(kb,string(g))
-	if err!=nil {
-		return "",err
+	dd, err := Decode(kb, string(g))
+	if err != nil {
+		return "", err
 	}
 	result := string(dd)
-	return result,nil
+	return result, nil
 }
 
 func (s *storage) Get(key string) (string, error) {
 	k, err := s.convert()
-	if err!=nil {
-		return "",err
-	}
-	evalue := s.data[key]
-	d,err := Decode([]byte(evalue),k)
-	if err!=nil {
+	if err != nil {
 		return "", err
 	}
-	return string(d),nil
+	evalue := s.data[key]
+	d, err := Decode([]byte(evalue), k)
+	if err != nil {
+		return "", err
+	}
+	return string(d), nil
 }
 
 func (s *storage) store() error {
-	k,e:=s.convert()
-	if e!=nil {
+	k, e := s.convert()
+	if e != nil {
 		return e
 	}
 	ba := NewByteSlice()
-	for i:=0;i<len(s.pairs);i++ {
+	for i := 0; i < len(s.pairs); i++ {
 		ba.AddInt(s.pairs[i].aside)
 		ba.AddInt(s.pairs[i].bside)
 	}
 	ba.AddByteSlice(s.key)
-	for key,value := range s.data {
-		kd, e := Encode([]byte(key),k)
-		if e!=nil {
+	for key, value := range s.data {
+		kd, e := Encode([]byte(key), k)
+		if e != nil {
 			return e
 		}
-		ba.Put(kd,value)
+		ba.Put(kd, value)
 	}
-	err:=ioutil.WriteFile(s.filename, ba.Data(), 0777)
-	if err!=nil {
+	err := ioutil.WriteFile(s.filename, ba.Data(), 0777)
+	if err != nil {
 		Error("Failed to store data to file "+s.filename+"! ", err)
 		return err
 	}
@@ -154,11 +155,11 @@ func (s *storage) store() error {
 
 func (s *storage) create() error {
 	newkey := GenerateAES256Key()
-	for i:=0;i<4;i++ {
+	for i := 0; i < 4; i++ {
 		s.addpair()
 	}
-	keydata, err := Encode([]byte(newkey),string(g))
-	if err!=nil {
+	keydata, err := Encode([]byte(newkey), string(g))
+	if err != nil {
 		return err
 	}
 	s.validate(keydata)
@@ -167,36 +168,36 @@ func (s *storage) create() error {
 }
 
 func (s *storage) load() error {
-	_,err := os.Stat(s.filename)
-	if err!=nil {
+	_, err := os.Stat(s.filename)
+	if err != nil {
 		Info("storage does not exist, creating it!")
 		return s.create()
 	}
-	buff,err := ioutil.ReadFile(s.filename)
-	if err!=nil {
+	buff, err := ioutil.ReadFile(s.filename)
+	if err != nil {
 		Error("Failed to read storage file! ", err)
 		return err
 	}
 
-	ba := NewByteSliceWithData(buff,0)
+	ba := NewByteSliceWithData(buff, 0)
 
-	for i:=0;i<4;i++ {
-		aside:=ba.GetInt()
-		bside:=ba.GetInt()
-		p:=pair{}
-		p.aside=aside
-		p.bside=bside
-		s.pairs = append(s.pairs,&p)
+	for i := 0; i < 4; i++ {
+		aside := ba.GetInt()
+		bside := ba.GetInt()
+		p := pair{}
+		p.aside = aside
+		p.bside = bside
+		s.pairs = append(s.pairs, &p)
 	}
 	s.key = ba.GetByteSlice()
-	k,err := s.convert()
-	if err!=nil {
+	k, err := s.convert()
+	if err != nil {
 		return err
 	}
-	for ;!ba.IsEOF(); {
-		key,value := ba.Get()
-		kd, err := Decode(key,k)
-		if err!=nil {
+	for ; !ba.IsEOF(); {
+		key, value := ba.Get()
+		kd, err := Decode(key, k)
+		if err != nil {
 			return err
 		}
 		ks := string(kd)
@@ -208,7 +209,7 @@ func (s *storage) load() error {
 func Encode(data []byte, key string) ([]byte, error) {
 	k := []byte(key)
 	block, err := aes.NewCipher(k)
-	if err !=nil{
+	if err != nil {
 		Info("Failed to load encryption cipher! ", err)
 		return data, err
 	}
@@ -218,8 +219,8 @@ func Encode(data []byte, key string) ([]byte, error) {
 
 	iv := cipherdata[:aes.BlockSize]
 	_, err = io.ReadFull(rand.Reader, iv)
-	if err!=nil {
-		Error("Failed to encrypt data! ",err)
+	if err != nil {
+		Error("Failed to encrypt data! ", err)
 		return data, err
 	}
 
@@ -236,7 +237,7 @@ func Decode(encData []byte, key string) ([]byte, error) {
 	}
 	k := []byte(key)
 	block, err := aes.NewCipher(k)
-	if err !=nil{
+	if err != nil {
 		Error("Failed to load encryption cipher! ", err)
 		return encData, err
 	}
@@ -247,7 +248,14 @@ func Decode(encData []byte, key string) ([]byte, error) {
 	data, err := base64.StdEncoding.DecodeString(string(encData))
 	if err != nil {
 		Error("Failed to decrypt data! ", err)
-		return encData,err
+		return encData, err
 	}
 	return data, nil
+}
+
+func Hash256(data []byte) string {
+	sha256Hash := sha256.New()
+	sha256Hash.Write(data)
+	hash := sha256Hash.Sum(nil)
+	return base64.URLEncoding.EncodeToString(hash)
 }
