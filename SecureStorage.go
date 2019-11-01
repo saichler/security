@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	mathrand "math/rand"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -258,4 +259,51 @@ func Hash256(data []byte) string {
 	sha256Hash.Write(data)
 	hash := sha256Hash.Sum(nil)
 	return base64.URLEncoding.EncodeToString(hash)
+}
+
+func FileHash256(filename string) (string, error) {
+	stat, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		Error("File " + filename + " does not exist.")
+		return "", err
+	}
+
+	file, err := os.Open(filename)
+	if err != nil {
+		Error("Failed to open the file "+filename, err)
+		return "", err
+	}
+
+	sha256Hash := sha256.New()
+	var fileHash []byte
+
+	var parts int64
+	var block int64
+	block = 1024 * 1024
+	parts = stat.Size() / block
+	if stat.Size()%block != 0 {
+		parts++
+	}
+
+	var i int64
+	for i = 0; i < parts; i++ {
+		toRead := block
+		if stat.Size() < i*block+block {
+			toRead = stat.Size() - i*block
+		}
+		data := make([]byte, toRead)
+		_, err = file.Read(data)
+		if err != nil {
+			Error("Failed to read part "+strconv.Itoa(int(i))+" from file:", err)
+			return "", err
+		}
+		sha256Hash.Write(data)
+		fileHash = sha256Hash.Sum(nil)
+	}
+	err = file.Close()
+	if err != nil {
+		Error("Failed to close the file " + filename)
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(fileHash), nil
 }
