@@ -3,6 +3,7 @@ package security
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/md5"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -261,30 +262,32 @@ func Hash256(data []byte) string {
 	return base64.URLEncoding.EncodeToString(hash)
 }
 
-func FileHash256(filename string) (string, error) {
+func FileHash(filename string) (string, error) {
+	t0 := time.Now().Nanosecond()
 	stat, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		Error("File " + filename + " does not exist.")
 		return "", err
 	}
-
+	t1 := time.Now().Nanosecond()
 	file, err := os.Open(filename)
 	if err != nil {
 		Error("Failed to open the file "+filename, err)
 		return "", err
 	}
-
-	sha256Hash := sha256.New()
+	t2 := time.Now().Nanosecond()
+	hashAlg := md5.New()
+	t3 := time.Now().Nanosecond()
 	var fileHash []byte
 
 	var parts int64
 	var block int64
-	block = 1024 * 1024
+	block = 1024 * 1024 * 50
 	parts = stat.Size() / block
 	if stat.Size()%block != 0 {
 		parts++
 	}
-
+	t4 := time.Now().Nanosecond()
 	var i int64
 	for i = 0; i < parts; i++ {
 		toRead := block
@@ -297,13 +300,33 @@ func FileHash256(filename string) (string, error) {
 			Error("Failed to read part "+strconv.Itoa(int(i))+" from file:", err)
 			return "", err
 		}
-		sha256Hash.Write(data)
-		fileHash = sha256Hash.Sum(nil)
+		hashAlg.Write(data)
+		fileHash = hashAlg.Sum(nil)
 	}
+	t5 := time.Now().Nanosecond()
 	err = file.Close()
 	if err != nil {
 		Error("Failed to close the file " + filename)
 		return "", err
 	}
-	return base64.URLEncoding.EncodeToString(fileHash), nil
+	t6 := time.Now().Nanosecond()
+	result := base64.URLEncoding.EncodeToString(fileHash)
+
+	printTimes(t0, t1, t2, t3, t4, t5, t6)
+	return result, nil
+}
+
+func printTimes(t ...int) {
+	/*
+		max := 0
+		pos := 0
+		for i := 1; i < len(t); i++ {
+			v := t[i] - t[i-1]
+			if v > max {
+				max = v
+				pos = i
+			}
+		}
+		fmt.Println("T" + strconv.Itoa(pos) + "=" + strconv.Itoa(int(max)))
+	*/
 }
