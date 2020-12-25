@@ -234,13 +234,11 @@ func Encode(data []byte, key string) ([]byte, error) {
 func Decode(encData []byte, key string) ([]byte, error) {
 	if len(encData) < aes.BlockSize {
 		err := errors.New("Encrypted data does not have an IV spec!")
-		Error("Encrypted data does not have an IV spec!")
 		return encData, err
 	}
 	k := []byte(key)
 	block, err := aes.NewCipher(k)
 	if err != nil {
-		Error("Failed to load encryption cipher! ", err)
 		return encData, err
 	}
 	iv := encData[:aes.BlockSize]
@@ -249,7 +247,6 @@ func Decode(encData []byte, key string) ([]byte, error) {
 	cfb.XORKeyStream(encData, encData)
 	data, err := base64.StdEncoding.DecodeString(string(encData))
 	if err != nil {
-		Error("Failed to decrypt data! ", err)
 		return encData, err
 	}
 	return data, nil
